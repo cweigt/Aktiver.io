@@ -13,7 +13,7 @@ app = FastAPI()
 Base.metadata.create_all(bind=engine)
 
 # Example spaCy pipeline:
-nlp = spacy.load("en_core_web_sm")  # Replace with your custom biomedical model
+nlp = spacy.load("PubMedBERT")  # Replace with your custom biomedical model
 
 
 def compute_pfs(conf: float):
@@ -118,7 +118,7 @@ def run_auto_ner(db: Session = Depends(get_db)):
         for ent in doc.ents:
             # Fake confidence
             raw_conf = 0.9
-            my, mn, h = compute_pfs(raw_conf)
+            my, mn, h = compute_pfs(raw_conf) #this is usign PFS I believe…
 
             results.append({
                 "text": ent.text,
