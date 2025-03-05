@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manual Annotation</title>
+</head>
+<body>
+    <h1>Simple Annotation Tool</h1>
+    <button id="nextBtn">Load Next Chunk</button>
+    <div id="chunkArea" style="margin-top:20px; border:1px solid #ddd; padding:10px;">
+        <p><strong>Chunk ID:</strong> <span id="chunkId">N/A</span></p>
+        <p><strong>Text:</strong></p>
+        <div id="chunkText" style="white-space: pre-wrap;"></div>
+    </div>
+    <br>
+    <h3>Annotate Entities</h3>
+    <p>Add as many as you like, then click "Submit".</p>
+    <div id="entitiesContainer"></div>
+    <button id="addEntityBtn">+ Add Entity</button>
+    <br><br>
+    <button id="submitBtn">Submit Annotation</button>
+
+    <script>
+        let currentChunkId = null;
+
+        document.getElementById("nextBtn").addEventListener("click", async () => {
+            const resp = await fetch("/annotation/next");
+            const data = await resp.json();
+
+            if (data.message) {
+                // means no unannotated left
+                alert(data.message);
+                return;
+            }
+
+            currentChunkId = data.chunk_id;
+            document.getElementById("chunkId").innerText = currentChunkId;
+            document.getElementById("chunkText").textContent = data.text;
+
+            // Clear any previous entity forms
+            document.getElementById("entitiesContainer").innerHTML = "";
+        });
+
+        document.getElementById("addEntityBtn").addEventListener("click", () => {
+            const container = document.getElementById("entitiesContainer");
+            const div = document.createElement("div");
+            div.innerHTML = `
+                <hr>
+                <label>Entity Text: <input type="text" class="entText"></label><br>
+                <label>Label:
+                    <select class="entLabel">
+                        <option value="MOLECULAR_TARGET">MOLECULAR_TARGET</option>
+                        <option value="THERAPY">THERAPY</option>
+                        <option value="DRUG">DRUG</option>
+                        <option value="GENE">GENE</option>
+                        <option value="PROTEIN">PROTEIN</option>
+                        <option value="TREATMENT">TREATMENT</option>
+                    </select>
+                </label><br>
+                <label>Confidence: <input type="number" class="entConf" step="0.01" value="0.9"></label>
+            `;
+            container.appendChild(div);
+        });
+
+        document.getElementById("submitBtn").addEventListener("click", async () => {
+            if (!currentChunkId) {
+                alert("No chunk loaded!");
+                return;
+            }
+
+            const container = document.getElementById("entitiesContainer");
+            const entityDivs = container.querySelectorAll("div");
+            let entities = [];
+
+            entityDivs.forEach(div => {
+                const textVal = div.querySelector(".entText").value.trim();
+                const labelVal = div.querySelector(".entLabel").value;
+                const confVal = parseFloat(div.querySelector(".entConf").value);
+
+                if (textVal) {
+                    entities.push({
+                        text: textVal,
+                        label: labelVal,
+                        confidence: confVal
+                    });
+                }
+            });
+
+            if (entities.length === 0) {
+                alert("Please add at least one entity before submitting.");
+                return;
+            }
+
+            // Convert to JSON string
+            const annotationJson = JSON.stringify(entities);
+
+            // Submit to /annotation/submit
+            const formData = new FormData();
+            formData.append("chunk_id", currentChunkId);
+            formData.append("annotation_json", annotationJson);
+
+            const resp = await fetch("/annotation/submit", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await resp.json();
+            alert(data.message);
+
+            // Reset for next chunk
+            document.getElementById("chunkId").innerText = "N/A";
+            document.getElementById("chunkText").textContent = "";
+            container.innerHTML = "";
+            currentChunkId = null;
+        });
+    </script>
+</body>
+</html>
