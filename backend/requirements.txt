@@ -1,3 +1,6 @@
 uvicorn
-fastAPI
+fastapi
 sqlalchemy
+PyMuPDF
+spacy
+python-multipart

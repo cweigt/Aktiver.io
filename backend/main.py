@@ -12,8 +12,14 @@ app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
 
-# Example spaCy pipeline:
-nlp = spacy.load("PubMedBERT")  # Replace with your custom biomedical model
+# Load a basic English model for now - can be replaced with biomedical model later
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    # If model is not found, download it
+    import os
+    os.system("python -m spacy download en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
 
 
 def compute_pfs(conf: float):
@@ -60,7 +66,7 @@ async def upload_pdf(
         new_chunk = TextChunk(
             text=chunk,
             is_annotated=False,
-            annotation_json=None,  # We’ll fill this in after manual annotation
+            annotation_json=None,  # We'll fill this in after manual annotation
         )
         db.add(new_chunk)
 
